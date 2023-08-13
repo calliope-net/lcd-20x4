@@ -23,6 +23,10 @@ Bytes (COMMAND oder Text) können auf dem i2c-Bus einzeln oder zusammen übertra
 Ein Buffer muss nicht mit einem COMMAND anfangen.
 Jedes Byte wird angezeigt, wenn es nicht nach 0xFE oder | zu einem COMMAND gehört.
 
+[Emergency Reset] https://learn.sparkfun.com/tutorials/avr-based-serial-enabled-lcds-hookup-guide/troubleshooting
+When the screen first boots up, the AVR on the back will watch its RX pin. 
+If that pin is held LOW (aka tied to ground), for 2 seconds, then it will reset all settings to default.
+
 Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßner im August 2023
 */ {
     export enum eADDR { LCD_Qwiic = 0x72 } // This is the default address of the OpenLCD
