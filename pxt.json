@@ -1,9 +1,7 @@
 {
     "name": "lcd-20x4",
     "dependencies": {
-        "core": "*",
-        "radio": "*",
-        "microphone": "*"
+        "core": "*"
     },
     "files": [
         "main.blocks",
@@ -14,11 +12,12 @@
         "test.ts"
     ],
     "targetVersions": {
-        "target": "6.0.17",
-        "targetId": "microbit"
+        "target": "4.0.35",
+        "targetId": "calliopemini"
     },
     "supportedTargets": [
+        "calliopemini",
         "microbit"
     ],
-    "preferredEditor": "blocksprj"
+    "preferredEditor": "tsprj"
 }
