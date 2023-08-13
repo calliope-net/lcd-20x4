@@ -6,7 +6,9 @@
     "files": [
         "main.blocks",
         "main.ts",
-        "README.md"
+        "README.md",
+        "Qwiic_I2C_Py.ts",
+        "lcd-20x4.ts"
     ],
     "testFiles": [
         "test.ts"
