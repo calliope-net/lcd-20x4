@@ -94,6 +94,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% group="SPECIAL_COMMAND" advanced=true
     //% block="i2c %pADDR %pENTRYMODE %pENTRYSHIFT" weight=30
     export function entrymodeset(pADDR: eADDR, pENTRYMODE: eLCD_ENTRYMODE, pENTRYSHIFT: eLCD_ENTRYSHIFT) {
+        // LCD_ENTRYLEFT Set the text to flow from left to right. This is the direction that is common to most Western languages.
+        // LCD_ENTRYSHIFTINCREMENT Turn autoscrolling off.
         specialCommand(pADDR, LCD_ENTRYMODESET | pENTRYMODE | pENTRYSHIFT)
     } // 37 µs bei 270 kHz (gilt für alle außer LCD_RETURNHOME)
 
@@ -128,19 +130,26 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
 
-    // ========== eigene Funktionen
+    // ========== eigene Funktionen ==========
+    // ========== group="LCD Display Qwiic"
+
+    export enum eINIT { _ = 0, RGB_CONTRAST = 1 }
 
     //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR init LCD" weight=86
-    export function initLCD(pADDR: eADDR) {
-        //specialCommand(pADDR, LCD_DISPLAYCONTROL | _displayControl) // 0x0C
+    //% block="i2c %pADDR init LCD %pSettings" weight=86
+    export function initLCD(pADDR: eADDR, pSettings: eINIT) {
+        // LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF // 0x0C
         setDisplay(pADDR, eONOFF.ON, eONOFF.OFF, eONOFF.OFF)
-        //sleep(1)
-        //specialCommand(pADDR, LCD_ENTRYMODESET | _displayMode) // 0x06
+        // LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT // 0x06
         entrymodeset(pADDR, eLCD_ENTRYMODE.LCD_ENTRYLEFT, eLCD_ENTRYSHIFT.LCD_ENTRYSHIFTDECREMENT)
-        //sleep(1)
-        settingCommand_1(pADDR, eSETTING_COMMAND_1.CLEAR_COMMAND) //  clearScreen(pADDR)
-        //sleep(1)
+        if (pSettings == eINIT.RGB_CONTRAST) {
+            // RGB white
+            setBacklight(pADDR, 255, 255, 255)
+            // CONTRAST_COMMAND
+            settingCommand_2(pADDR, eSETTING_COMMAND_2.CONTRAST_COMMAND, 0)
+        }
+        // LCD_CLEARDISPLAY
+        clearScreen(pADDR, eLCD_CLEARDISPLAY.LCD_CLEARDISPLAY)
     }
 
     export enum eAlign { left, right }
@@ -161,7 +170,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
             writeLCD(pADDR, t)
         }
     }
-
 
 
     //% group="LCD Display Qwiic"
@@ -189,10 +197,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% block="i2c %pADDR writeText %pString" weight=80
     export function writeLCD(pADDR: eADDR, pString: string) {
         //for (let val in pString) {}
-        /* for (let i = 0; i < pString.length; i++) {
-            Qwiic_I2C_Py.writeCommand(pADDR, pString.charCodeAt(i))
-            sleep(0.01)
-        } */
 
         let bu = pins.createBuffer(pString.length)
         for (let i = 0; i < pString.length; i++) {
@@ -202,8 +206,10 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.01)
     }
 
-// ========== advanced=true
-// ========== group="LCD Display Qwiic"
+    // ========== advanced=true
+    // ========== group="LCD Display Qwiic"
+
+
 
     //% group="LCD Display Qwiic" advanced=true
     //% block="i2c %pADDR setCursor row %row col %col cursor %cursor blink %blink" weight=54
@@ -217,67 +223,17 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
 
-   
 
 
 
 
-    function specialCommand(pADDR: eADDR, pCommand: number) {
-        let bu = pins.createBuffer(2)
-        bu.setUint8(0, SPECIAL_COMMAND)
-        bu.setUint8(1, pCommand & 0xFF)
-        pins.i2cWriteBuffer(pADDR, bu)
-
-        //Qwiic_I2C_Py.writeByte(pADDR, SPECIAL_COMMAND, pCommand)
-        sleep(0.05)
-    }
-
-    // Send one setting command to the display.
-    // param command: Command to send (a single byte)
-    /* function command(pADDR: eADDR, pCommand: number) {
-        let bu = pins.createBuffer(2)
-        bu.setUint8(0, SETTING_COMMAND)
-        bu.setUint8(1, pCommand)
-        pins.i2cWriteBuffer(pADDR, bu)
-
-        //Qwiic_I2C_Py.writeByte(pADDR, SETTING_COMMAND, pCommand)
-        sleep(0.01)
-    } */
 
 
-    // ========== group="Text" advanced=true
-
-    //% group="Text" advanced=true
-    //% block="Sonderzeichen Code von Char %pChar" weight=40
-    export function changeCharCode(pChar: string) {
-        if (pChar.length == 0) return 0
-        switch (pChar.charCodeAt(0)) {
-            case SPECIAL_COMMAND: return 0xD8 // 0xFE im Text wirkt als Command, auch
-            case SETTING_COMMAND: return 0xC9 // '|'  wenn es nicht am Anfang im Buffer steht
-            case 0x0D: return 0xA2 // CR durch druckbares Zeichen aus LCD Font-Table ersetzen
-            case 0x0A: return 0xA3 // LF
-            case 0xFF: return 0xF3 // EOF
-            case 0x00: return 0xF2 // NUL
-            case 0x80: return 0xE3 // € kann verschiedene Codierungen haben
-        }
-        switch (pChar.charAt(0)) { // case "ä", "Ä" mit Komma trennen funktioniert nicht
-            case "ß": return 0xE2
-            case "ä": return 0xE1
-            case "ö": return 0xEF
-            case "ü": return 0xF5
-            case "Ä": return 0xE1
-            case "Ö": return 0xEF
-            case "Ü": return 0xF5
-            case "€": return 0xE3 // € funktioniert nicht
-            case "µ": return 0xE4
-            case "°": return 0xDF
-        }
-        return pChar.charCodeAt(0) & 0xFF // es können nur 1 Byte Zeichen-Codes im Buffer übertragen werden
-    }
 
 
 
     // ========== group="SETTING_COMMAND" advanced=true ========== im Datasheet nicht dokumentiert
+
 
     // OpenLCD commands
     // const CLEAR_COMMAND = 0x2D					// 45, -, the dash character: command to clear and home the display
@@ -319,7 +275,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.01)
     }
 
-
     //% group="SETTING_COMMAND" advanced=true
     //% block="i2c %pADDR SETTING_COMMAND %pCommand %pByte" weight=22
     //% pByte.min=0 pByte.max=255
@@ -341,7 +296,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         pins.i2cWriteBuffer(pADDR, bu)
 
         //Qwiic_I2C_Py.writeByte(pADDR, SETTING_COMMAND, pCommand)
-        sleep(0.01)
+        sleep(0.05)
     }
 
     //% group="RGB Backlight"
@@ -370,7 +325,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
     // ========== group="SETTING_COMMAND" advanced=true ========== im Datasheet nicht dokumentiert
-
 
     //% group="SETTING_COMMAND" advanced=true
     //% block="i2c %i2cADDR set RGB r %r g %g b %b" weight=20
@@ -403,10 +357,53 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
+    // ========== group="Text" advanced=true
+
+    //% group="Text" advanced=true
+    //% block="Sonderzeichen Code von Char %pChar" weight=10
+    export function changeCharCode(pChar: string) {
+        if (pChar.length == 0) return 0
+        switch (pChar.charCodeAt(0)) {
+            case SPECIAL_COMMAND: return 0xD8 // 0xFE im Text wirkt als Command, auch
+            case SETTING_COMMAND: return 0xC9 // '|'  wenn es nicht am Anfang im Buffer steht
+            case 0x0D: return 0xA2 // CR durch druckbares Zeichen aus LCD Font-Table ersetzen
+            case 0x0A: return 0xA3 // LF
+            case 0xFF: return 0xF3 // EOF
+            case 0x00: return 0xF2 // NUL
+            case 0x80: return 0xE3 // € kann verschiedene Codierungen haben
+        }
+        switch (pChar.charAt(0)) { // case "ä", "Ä" mit Komma trennen funktioniert nicht
+            case "ß": return 0xE2
+            case "ä": return 0xE1
+            case "ö": return 0xEF
+            case "ü": return 0xF5
+            case "Ä": return 0xE1
+            case "Ö": return 0xEF
+            case "Ü": return 0xF5
+            case "€": return 0xE3 // € funktioniert nicht
+            case "µ": return 0xE4
+            case "°": return 0xDF
+        }
+        return pChar.charCodeAt(0) & 0xFF // es können nur 1 Byte Zeichen-Codes im Buffer übertragen werden
+    }
+
+
 
     // ========== PRIVATE function
 
     // aus Python
     function sleep(pSekunden: number) { control.waitMicros(pSekunden * 1000000) }
+
+    function specialCommand(pADDR: eADDR, pCommand: number) {
+        let bu = pins.createBuffer(2)
+        bu.setUint8(0, SPECIAL_COMMAND)
+        bu.setUint8(1, pCommand & 0xFF)
+        pins.i2cWriteBuffer(pADDR, bu)
+
+        //Qwiic_I2C_Py.writeByte(pADDR, SPECIAL_COMMAND, pCommand)
+        sleep(0.05)
+    }
+
+
 
 } // lcd-20x4.ts
