@@ -10,14 +10,14 @@ optimiert und getestet für die gleichzeitige Nutzung mehrerer i2c Module am Cal
 [Hardware]  https://www.sparkfun.com/products/16398 SparkFun 20x4 SerLCD - RGB Backlight (Qwiic)
             https://www.sparkfun.com/products/16397 SparkFun 16x2 SerLCD - RGB Text (Qwiic)
             https://www.sparkfun.com/products/16396 SparkFun 16x2 SerLCD - RGB Backlight (Qwiic)
-JDH_1804_Datasheet https://www.sparkfun.com/datasheets/LCD/HD44780.pdf
+JDH_1804_Datasheet https://www.sparkfun.com/datasheets/LCD/HD44780.pdf (ohne SETTING_COMMANDs)
 
 [Software]  https://github.com/sparkfun/Qwiic_SerLCD_Py
             https://github.com/sparkfun/Qwiic_I2C_Py/tree/master/qwiic_i2c
 
 i2c-Besonderheiten:
 Ein COMMAND beginnt immer mit SPECIAL_COMMAND = 0xFE oder SETTING_COMMAND = '|'.
-Diese Zeichen werden auch mitten im Text als COMMAND ausgewertet.
+Diese Zeichen werden auch mitten im Text als COMMAND erkannt.
 Deshalb werden sie (wie Umlaute und Sonderzeichen) durch druckbare Zeichen > 0xA0 ersetzt.
 Bytes (COMMAND oder Text) können auf dem i2c-Bus einzeln oder zusammen übertragen werden.
 Ein Buffer muss nicht mit einem COMMAND anfangen.
@@ -40,30 +40,34 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
     // special commands
-    const LCD_RETURNHOME = 0x02     // SPECIAL_COMMAND, LCD_RETURNHOME (1 Byte)
+    // const LCD_CLEARDISPLAY = 0x01   // im Beispiel Py nicht benutzt, stattdessen CLEAR_COMMAND = 0x2D
+    // const LCD_RETURNHOME = 0x02     // SPECIAL_COMMAND, LCD_RETURNHOME (1 Byte)
     // Flags
     const LCD_ENTRYMODESET = 0x04   // SPECIAL_COMMAND, LCD_ENTRYMODESET | Flags
     const LCD_DISPLAYCONTROL = 0x08 // SPECIAL_COMMAND, LCD_DISPLAYCONTROL | Flags
     const LCD_CURSORSHIFT = 0x10    // SPECIAL_COMMAND, LCD_CURSORSHIFT | Flags
+    //    LCD_FUNCTIONSET = 0x20    nicht benutzt
+    //    LCD_SETCGRAMADDR = 0x40   nicht benutzt
     // set Cursor
     const LCD_SETDDRAMADDR = 0x80   // SPECIAL_COMMAND, LCD_SETDDRAMADDR | (col + row_offsets[row])
+    export enum eLCD_CLEARDISPLAY { LCD_CLEARDISPLAY = 0x01, LCD_RETURNHOME = 0x02 }
 
     // flags for display entry mode // SPECIAL_COMMAND + 1 Byte (4|2|1)
-    const LCD_ENTRYRIGHT = 0x00 // SPECIAL_COMMAND, Flags(LCD_ENTRYMODESET | LCD_ENTRYRIGHT | LCD_ENTRYSHIFTDECREMENT)
-    const LCD_ENTRYLEFT = 0x02
-    const LCD_ENTRYSHIFTINCREMENT = 0x01
-    const LCD_ENTRYSHIFTDECREMENT = 0x00
+    // const LCD_ENTRYRIGHT = 0x00 // SPECIAL_COMMAND, Flags(LCD_ENTRYMODESET | LCD_ENTRYRIGHT | LCD_ENTRYSHIFTDECREMENT)
+    // const LCD_ENTRYLEFT = 0x02
+    // const LCD_ENTRYSHIFTINCREMENT = 0x01
+    // const LCD_ENTRYSHIFTDECREMENT = 0x00
     export enum eLCD_ENTRYMODE { LCD_ENTRYLEFT = 0x02, LCD_ENTRYRIGHT = 0x00 }
     export enum eLCD_ENTRYSHIFT { LCD_ENTRYSHIFTDECREMENT = 0x00, LCD_ENTRYSHIFTINCREMENT = 0x01 }
 
 
     // flags for display on/off control (8 | 4 | 2 | 1)
-    const LCD_DISPLAYON = 0x04 // SPECIAL_COMMAND, Flags(LCD_DISPLAYCONTROL | LCD_DISPLAYON | )
-    const LCD_DISPLAYOFF = 0x00
-    const LCD_CURSORON = 0x02
-    const LCD_CURSOROFF = 0x00
-    const LCD_BLINKON = 0x01
-    const LCD_BLINKOFF = 0x00
+    // const LCD_DISPLAYON = 0x04 // SPECIAL_COMMAND, Flags(LCD_DISPLAYCONTROL | LCD_DISPLAYON | )
+    // const LCD_DISPLAYOFF = 0x00
+    // const LCD_CURSORON = 0x02
+    // const LCD_CURSOROFF = 0x00
+    // const LCD_BLINKON = 0x01
+    // const LCD_BLINKOFF = 0x00
 
     // flags for display/cursor shift (0x10 | 8 | 4)
     // const LCD_DISPLAYMOVE = 0x08 // SPECIAL_COMMAND, Flags(LCD_CURSORSHIFT | LCD_DISPLAYMOVE)
@@ -75,25 +79,32 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
     // Variablen
-    let _displayControl = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF
-    let _displayMode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT
+    // let _displayControl = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF
+    // let _displayMode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT
 
-    export function returnhome(pADDR: eADDR) {
-        specialCommand(pADDR, LCD_RETURNHOME)
+    // ========== special commands
+
+    //% group="LCD Display Qwiic" advanced=true
+    //% block="i2c %pADDR %pLCD_CLEARDISPLAY" weight=50
+    export function clearScreen(pADDR: eADDR, pLCD_CLEARDISPLAY: eLCD_CLEARDISPLAY) {
+        specialCommand(pADDR, pLCD_CLEARDISPLAY)
+        // settingCommand_1(pADDR, eSETTING_COMMAND_1.CLEAR_COMMAND)
     }
 
+    //% group="SPECIAL_COMMAND" advanced=true
+    //% block="i2c %pADDR %pENTRYMODE %pENTRYSHIFT" weight=30
     export function entrymodeset(pADDR: eADDR, pENTRYMODE: eLCD_ENTRYMODE, pENTRYSHIFT: eLCD_ENTRYSHIFT) {
         specialCommand(pADDR, LCD_ENTRYMODESET | pENTRYMODE | pENTRYSHIFT)
-    }
+    } // 37 µs bei 270 kHz (gilt für alle außer LCD_RETURNHOME)
 
     export enum eONOFF { OFF = 0, ON = 1 }
 
-    //% group="LCD" advanced=true
+    //% group="LCD Display Qwiic" advanced=true
     //% block="i2c %pADDR display %display cursor %cursor blink %blink" weight=52
     //% row.min=0 row.max=1 col.min=0 col.max=15 display.defl=lcd20x4.eONOFF.ON
     //% inlineInputMode=inline
-    export function displaycontrol(pADDR: eADDR, display: eONOFF, cursor: eONOFF, blink: eONOFF) {
-        let command: number = 0x08 // LCD_DISPLAYCONTROL
+    export function setDisplay(pADDR: eADDR, display: eONOFF, cursor: eONOFF, blink: eONOFF) {
+        let command: number = LCD_DISPLAYCONTROL // 0x08
         if (display == eONOFF.ON) { command += 0x04 }
         if (cursor == eONOFF.ON) { command += 0x02 }
         if (blink == eONOFF.ON) { command += 0x01 }
@@ -101,6 +112,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         specialCommand(pADDR, command)
     }
 
+    //% group="SPECIAL_COMMAND" advanced=true
+    //% block="i2c %pADDR %pDISPLAYMOVE %pMOVERIGHT count %pCount" weight=32
+    //% inlineInputMode=inline
     export function cursorshift(pADDR: eADDR, pDISPLAYMOVE: eLCD_DISPLAYMOVE, pMOVERIGHT: eLCD_MOVERIGHT, pCount: number) {
         let bu = pins.createBuffer(2 * Math.min(Math.max(0, pCount), MAX_COLUMNS - 1)) // pCount 0..15 oder 0..19
         for (let i = 0; i < bu.length; i += 2) {
@@ -111,47 +125,69 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.05)
     }
 
+
+
+
+    // ========== eigene Funktionen
+
     //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR setCursor row %pRow col %pCol" 
+    //% block="i2c %pADDR init LCD" weight=86
+    export function initLCD(pADDR: eADDR) {
+        //specialCommand(pADDR, LCD_DISPLAYCONTROL | _displayControl) // 0x0C
+        setDisplay(pADDR, eONOFF.ON, eONOFF.OFF, eONOFF.OFF)
+        //sleep(1)
+        //specialCommand(pADDR, LCD_ENTRYMODESET | _displayMode) // 0x06
+        entrymodeset(pADDR, eLCD_ENTRYMODE.LCD_ENTRYLEFT, eLCD_ENTRYSHIFT.LCD_ENTRYSHIFTDECREMENT)
+        //sleep(1)
+        settingCommand_1(pADDR, eSETTING_COMMAND_1.CLEAR_COMMAND) //  clearScreen(pADDR)
+        //sleep(1)
+    }
+
+    export enum eAlign { left, right }
+
+    //% group="LCD Display Qwiic"
+    //% block="i2c %pADDR writeText row %row col %col end %end align %pFormat Text %pText" weight=84
+    //% row.min=0 row.max=3 col.min=0 col.max=19 end.min=0 end.max=19 end.defl=19
+    //% inlineInputMode=inline
+    export function writeText(pADDR: eADDR, row: number, col: number, end: number, pAlign: eAlign, pText: string) {
+        let l: number = end - col + 1, t: string
+        if (col >= 0 && col <= MAX_COLUMNS - 1 && l > 0 && l <= MAX_COLUMNS) {
+            setCursor(pADDR, row, col)
+
+            if (pText.length >= l) t = pText.substr(0, l)
+            else if (pText.length < l && pAlign == eAlign.left) { t = pText + "                    ".substr(0, l - pText.length) }
+            else if (pText.length < l && pAlign == eAlign.right) { t = "                    ".substr(0, l - pText.length) + pText }
+
+            writeLCD(pADDR, t)
+        }
+    }
+
+
+
+    //% group="LCD Display Qwiic"
+    //% block="i2c %pADDR setCursor row %pRow col %pCol" weight=82
     //% row.min=0 row.max=3 col.min=0 col.max=19
     export function setCursor(pADDR: eADDR, pRow: number, pCol: number) {
-        let row_offsets = [0x00, 0x40, 0x14, 0x54]
+        let row_offsets = [0x00, 0x40, 0x14, 0x54] // 0, 64, 20, 84
         // kepp variables in bounds
-        /* pRow = Math.max(0, pRow)            //row cannot be less than 0
-        pRow = Math.min(pRow, (MAX_ROWS - 1)) //row cannot be greater than max rows
-        pCol = Math.min( Math.max(0, pCol),MAX_COLUMNS-1) */
-        specialCommand(pADDR, LCD_SETDDRAMADDR |
+        // pRow = Math.max(0, pRow)            //row cannot be less than 0
+        pRow = Math.min(Math.max(0, pRow), MAX_ROWS - 1) //row cannot be greater than max rows
+        pCol = Math.min(Math.max(0, pCol), MAX_COLUMNS - 1)
+        specialCommand(pADDR, LCD_SETDDRAMADDR | (row_offsets[pRow] + pCol)) // max. 7 Bit (127)
+        /* specialCommand(pADDR, LCD_SETDDRAMADDR |
             (
                 Math.min(Math.max(0, pCol), MAX_COLUMNS - 1) // pCol 0..15 oder 0..19
                 + row_offsets[pRow & (MAX_ROWS - 1)]) // pRow & 0x03 oder 0x01 -> [index] 0,1 oder 0,1,2,3
-        )
+        ) */
 
         // construct the cursor "command"
         //let command = LCD_SETDDRAMADDR | (pCol + row_offsets[pRow & (MAX_ROWS - 1)])
         //Qwiic_I2C_Py.writeByte(pADDR, SPECIAL_COMMAND, command)
     }
 
-
-
-
-
-    // ========== group="LCD Display Qwiic"
-
     //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR init LCD" 
-    export function begin(pADDR: eADDR) {
-        specialCommand(pADDR, LCD_DISPLAYCONTROL | _displayControl) // 0x0C
-        sleep(1)
-        //specialCommand(pADDR, LCD_ENTRYMODESET | _displayMode) // 0x06
-        entrymodeset(pADDR, eLCD_ENTRYMODE.LCD_ENTRYLEFT, eLCD_ENTRYSHIFT.LCD_ENTRYSHIFTDECREMENT)
-        //sleep(1)
-        settingCommand_1(pADDR, eSETTING_COMMAND_1.CLEAR_COMMAND) //  clearScreen(pADDR)
-        sleep(1)
-    }
-
-    //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR print %pString" 
-    export function print(pADDR: eADDR, pString: string) {
+    //% block="i2c %pADDR writeText %pString" weight=80
+    export function writeLCD(pADDR: eADDR, pString: string) {
         //for (let val in pString) {}
         /* for (let i = 0; i < pString.length; i++) {
             Qwiic_I2C_Py.writeCommand(pADDR, pString.charCodeAt(i))
@@ -166,44 +202,23 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.01)
     }
 
-    //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR clearScreen" 
-    export function clearScreen(pADDR: eADDR) {
-        settingCommand_1(pADDR, eSETTING_COMMAND_1.CLEAR_COMMAND)
-    }
+// ========== advanced=true
+// ========== group="LCD Display Qwiic"
 
-
-
-
-
-    //% group="RGB Backlight"
-    //% block="i2c %i2cADDR set RGB r %r g %g b %b" 
-    //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
+    //% group="LCD Display Qwiic" advanced=true
+    //% block="i2c %pADDR setCursor row %row col %col cursor %cursor blink %blink" weight=54
+    //% row.min=0 row.max=3 col.min=0 col.max=19 cursor.defl=lcd20x4.eONOFF.ON
     //% inlineInputMode=inline
-    export function setBacklight(pADDR: eADDR, r: number, g: number, b: number) {
-        // Turn display off to hide confirmation messages
-        _displayControl &= ~LCD_DISPLAYON
-
-        let bu = pins.createBuffer(10)
-        bu.setUint8(0, SPECIAL_COMMAND)
-        bu.setUint8(1, LCD_DISPLAYCONTROL | _displayControl)
-        bu.setUint8(2, SETTING_COMMAND)
-        bu.setUint8(3, 128 + Math.trunc(Math.map(r, 0, 255, 0, 29)))
-        bu.setUint8(4, SETTING_COMMAND)
-        bu.setUint8(5, 158 + Math.trunc(Math.map(g, 0, 255, 0, 29)))
-        bu.setUint8(6, SETTING_COMMAND)
-        bu.setUint8(7, 188 + Math.trunc(Math.map(b, 0, 255, 0, 29)))
-
-        // Turn display back on and end
-        _displayControl |= LCD_DISPLAYON
-        bu.setUint8(8, SPECIAL_COMMAND)
-        bu.setUint8(9, LCD_DISPLAYCONTROL | _displayControl)
-
-        // send the complete bytes (address, settings command , contrast command, contrast value)
-        //Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
-        pins.i2cWriteBuffer(pADDR, bu)
-        sleep(0.05)
+    export function setCursorCB(pADDR: eADDR, row: number, col: number, cursor: eONOFF, blink: eONOFF) {
+        setCursor(pADDR, row, col)
+        setDisplay(pADDR, eONOFF.ON, cursor, blink)
     }
+
+
+
+
+   
+
 
 
 
@@ -261,7 +276,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
-    // ========== group="SETTING_COMMAND" advanced=true ==========
+
+    // ========== group="SETTING_COMMAND" advanced=true ========== im Datasheet nicht dokumentiert
 
     // OpenLCD commands
     // const CLEAR_COMMAND = 0x2D					// 45, -, the dash character: command to clear and home the display
@@ -328,9 +344,10 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.01)
     }
 
-    //% group="SETTING_COMMAND" advanced=true
-    //% block="i2c %pADDR SETTING_COMMAND r %r g %g b %b" weight=20
+    //% group="RGB Backlight"
+    //% block="i2c %pADDR set RGB r %r g %g b %b" weight=70
     //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
+    //% r.defl=255 g.defl=255 b.defl=255
     //% inlineInputMode=inline
     export function settingCommand_4(pADDR: eADDR, r: number, g: number, b: number) {
         /*
@@ -351,6 +368,39 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.01)
     }
 
+
+    // ========== group="SETTING_COMMAND" advanced=true ========== im Datasheet nicht dokumentiert
+
+
+    //% group="SETTING_COMMAND" advanced=true
+    //% block="i2c %i2cADDR set RGB r %r g %g b %b" weight=20
+    //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
+    //% inlineInputMode=inline
+    export function setBacklight(pADDR: eADDR, r: number, g: number, b: number) {
+        // Turn display off to hide confirmation messages
+        // _displayControl &= ~LCD_DISPLAYON
+
+        let bu = pins.createBuffer(6)
+        let off = 0
+        // bu.setUint8(off++, SPECIAL_COMMAND)
+        // bu.setUint8(off++, LCD_DISPLAYCONTROL | _displayControl)
+        bu.setUint8(off++, SETTING_COMMAND)
+        bu.setUint8(off++, 128 + Math.trunc(Math.map(r, 0, 255, 0, 29)))
+        bu.setUint8(off++, SETTING_COMMAND)
+        bu.setUint8(off++, 158 + Math.trunc(Math.map(g, 0, 255, 0, 29)))
+        bu.setUint8(off++, SETTING_COMMAND)
+        bu.setUint8(off++, 188 + Math.trunc(Math.map(b, 0, 255, 0, 29)))
+
+        // Turn display back on and end
+        // _displayControl |= LCD_DISPLAYON
+        // bu.setUint8(off++, SPECIAL_COMMAND)
+        // bu.setUint8(off++, LCD_DISPLAYCONTROL | _displayControl)
+
+        // send the complete bytes (address, settings command , contrast command, contrast value)
+        //Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
+        pins.i2cWriteBuffer(pADDR, bu)
+        sleep(0.05)
+    }
 
 
 
