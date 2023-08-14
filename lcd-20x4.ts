@@ -1,7 +1,7 @@
 
 //% color=#0000FF icon="\uf26c" block="LCD 20x4" weight=17
 namespace lcd20x4
-/* 230813 \uf108
+/* 230814 \uf108
 Calliope i2c Erweiterung für 'SparkFun Serial LCDs (QWIIC)'
 optimiert und getestet für die gleichzeitige Nutzung mehrerer i2c Module am Calliope
 [Projekt-URL] https://github.com/calliope-net/lcd-20x4
