@@ -38,34 +38,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     const SPECIAL_COMMAND = 254  // Magic number for sending a special command
     const SETTING_COMMAND = 0x7C // 124, |, the pipe character: The command to change settings: baud, lines, width, backlight, splash, etc
 
-    // OpenLCD commands
-    const CLEAR_COMMAND = 0x2D					// 45, -, the dash character: command to clear and home the display
-    const CONTRAST_COMMAND = 0x18				// Command to change the contrast setting
-    const ADDRESS_COMMAND = 0x19				// Command to change the i2c address
-    const SET_RGB_COMMAND = 0x2B				// 43, +, the plus character: command to set backlight RGB value
-    const ENABLE_SYSTEM_MESSAGE_DISPLAY = 0x2E  // 46, ., command to enable system messages being displayed
-    const DISABLE_SYSTEM_MESSAGE_DISPLAY = 0x2F // 47, /, command to disable system messages being displayed
-    const ENABLE_SPLASH_DISPLAY = 0x30			// 48, 0, command to enable splash screen at power on
-    const DISABLE_SPLASH_DISPLAY = 0x31			// 49, 1, command to disable splash screen at power on
-    const SAVE_CURRENT_DISPLAY_AS_SPLASH = 0x0A // 10, Ctrl+j, command to save current text on display as splash
-    export enum eLCD_Commands {
-        CLEAR_COMMAND = 0x2D,                   // 45, -, the dash character: command to clear and home the display
-        //CONTRAST_COMMAND = 0x18,// Command to change the contrast setting
-        //ADDRESS_COMMAND = 0x19,// Command to change the i2c address
-        //SET_RGB_COMMAND = 0x2B,// 43, +, the plus character: command to set backlight RGB value
-        ENABLE_SYSTEM_MESSAGE_DISPLAY = 0x2E,   // 46, ., command to enable system messages being displayed
-        DISABLE_SYSTEM_MESSAGE_DISPLAY = 0x2F,  // 47, /, command to disable system messages being displayed
-        ENABLE_SPLASH_DISPLAY = 0x30,           // 48, 0, command to enable splash screen at power on
-        DISABLE_SPLASH_DISPLAY = 0x31,          // 49, 1, command to disable splash screen at power on
-        SAVE_CURRENT_DISPLAY_AS_SPLASH = 0x0A   // 10, Ctrl+j, command to save current text on display as splash
-    }
-
-
-    //% group="LCD" advanced=true
-    //% block="i2c %pADDR LCD commands %pCommand" weight=52
-    export function lcdCommand(pADDR: eADDR, pCommand: eLCD_Commands) {
-        command(pADDR, pCommand)
-    }
 
 
     // special commands
@@ -153,7 +125,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% group="LCD Display Qwiic"
     //% block="i2c %pADDR clearScreen"  weight=86
     export function clearScreen(pADDR: eADDR) {
-        command(pADDR, CLEAR_COMMAND)
+        command(pADDR, eSETTING_COMMAND_1.CLEAR_COMMAND)
         sleep(0.01)
     }
 
@@ -172,33 +144,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         Qwiic_I2C_Py.writeByte(pADDR, SPECIAL_COMMAND, command)
     }
 
-    //% block="i2c %i2cADDR setContrast %pContrast" weight=90
-    //% pContrast.min=0 pContrast.max=255 
-    export function setContrast(pADDR: eADDR, pContrast: number) {
-        /*
-        # To set the contrast we need to send 3 bytes:
-        # (1) SETTINGS_COMMAND
-        # (2) CONTRAST_COMMAND
-        # (3) contrast value
-        #
-        # To do this, we are going to use writeBlock(),
-        # so we need our "block of bytes" to include
-        # CONTRAST_COMMAND and contrast value
-        */
-        /* let bu = pins.createBuffer(2)
-        //bu.setUint8(0, SETTING_COMMAND)
-        bu.setUint8(0, CONTRAST_COMMAND)
-        bu.setUint8(1, pContrast)
-        Qwiic_I2C_Py.writeBlock(pADDR,SETTING_COMMAND,bu) */
 
-        let bu = pins.createBuffer(3)
-        bu.setUint8(0, SETTING_COMMAND)
-        bu.setUint8(1, CONTRAST_COMMAND)
-        bu.setUint8(2, pContrast)
-        pins.i2cWriteBuffer(pADDR, bu)
-
-        sleep(0.01)
-    }
 
     //% group="RGB Backlight"
     //% block="i2c %i2cADDR set RGB r %r g %g b %b" weight=90
@@ -229,27 +175,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.05)
     }
 
-
-    //% group="RGB Backlight"
-    //% block="i2c %i2cADDR set FastRGB r %r g %g b %b" weight=90
-    //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
-    //% inlineInputMode=inline
-    export function setFastBacklight(pADDR: eADDR, r: number, g: number, b: number) {
-        /*
-            Set backlight with no LCD messages or delays
-            :param r: red backlight value 0-255
-            :param g: green backlight value 0-255
-            :param b: blue backlight value 0-255
-        */
-        let bu = pins.createBuffer(4)
-        bu.setUint8(0, SET_RGB_COMMAND)
-        bu.setUint8(1, r)
-        bu.setUint8(2, g)
-        bu.setUint8(3, b)
-        // send the complete bytes (address, settings command , rgb command , red byte, green byte, blue byte)
-        Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
-        sleep(0.01)
-    }
 
 
     function specialCommand(pADDR: eADDR, pCommand: number) {
@@ -304,6 +229,99 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         }
         return pChar.charCodeAt(0) & 0xFF // es können nur 1 Byte Zeichen-Codes im Buffer übertragen werden
     }
+
+
+    // ========== group="SETTING_COMMAND" advanced=true ==========
+
+    // OpenLCD commands
+    // const CLEAR_COMMAND = 0x2D					// 45, -, the dash character: command to clear and home the display
+    // const CONTRAST_COMMAND = 0x18				// Command to change the contrast setting
+    // const ADDRESS_COMMAND = 0x19				    // Command to change the i2c address
+    // const SET_RGB_COMMAND = 0x2B				    // 43, +, the plus character: command to set backlight RGB value
+    // const ENABLE_SYSTEM_MESSAGE_DISPLAY = 0x2E   // 46, ., command to enable system messages being displayed
+    // const DISABLE_SYSTEM_MESSAGE_DISPLAY = 0x2F  // 47, /, command to disable system messages being displayed
+    // const ENABLE_SPLASH_DISPLAY = 0x30			// 48, 0, command to enable splash screen at power on
+    // const DISABLE_SPLASH_DISPLAY = 0x31			// 49, 1, command to disable splash screen at power on
+    // const SAVE_CURRENT_DISPLAY_AS_SPLASH = 0x0A  // 10, Ctrl+j, command to save current text on display as splash
+
+    export enum eSETTING_COMMAND_1 {    // SETTING_COMMAND + 1 Byte
+        CLEAR_COMMAND = 0x2D,                   // SETTING_COMMAND, CLEAR_COMMAND
+        ENABLE_SYSTEM_MESSAGE_DISPLAY = 0x2E,   // SETTING_COMMAND, ENABLE_SYSTEM_MESSAGE_DISPLAY
+        DISABLE_SYSTEM_MESSAGE_DISPLAY = 0x2F,  // SETTING_COMMAND, DISABLE_SYSTEM_MESSAGE_DISPLAY
+        ENABLE_SPLASH_DISPLAY = 0x30,           // SETTING_COMMAND, ENABLE_SPLASH_DISPLAY
+        DISABLE_SPLASH_DISPLAY = 0x31,          // SETTING_COMMAND, DISABLE_SPLASH_DISPLAY
+        SAVE_CURRENT_DISPLAY_AS_SPLASH = 0x0A   // SETTING_COMMAND, SAVE_CURRENT_DISPLAY_AS_SPLASH
+    }
+    export enum eSETTING_COMMAND_2 {    // SETTING_COMMAND + 2 Byte
+        CONTRAST_COMMAND = 0x18,        // SETTING_COMMAND, CONTRAST_COMMAND, value
+        ADDRESS_COMMAND = 0x19,         // SETTING_COMMAND, ADDRESS_COMMAND, value
+    }
+    export enum eSETTING_COMMAND_4 {    // SETTING_COMMAND + 4 Byte
+        SET_RGB_COMMAND = 0x2B          // SETTING_COMMAND, SET_RGB_COMMAND, r, g, b
+    }
+
+    //% group="SETTING_COMMAND" advanced=true
+    //% block="i2c %pADDR SETTING_COMMAND %pCommand"
+    export function settingCommand_1(pADDR: eADDR, pCommand: eSETTING_COMMAND_1) {
+        //command(pADDR, pCommand) // (0) SETTING_COMMAND, (1) pCommand
+        let bu = pins.createBuffer(2)
+        bu.setUint8(0, SETTING_COMMAND)
+        bu.setUint8(1, pCommand)
+        pins.i2cWriteBuffer(pADDR, bu)
+
+        //Qwiic_I2C_Py.writeByte(pADDR, SETTING_COMMAND, pCommand)
+        sleep(0.01)
+    }
+
+
+    //% group="SETTING_COMMAND" advanced=true
+    //% block="i2c %pADDR SETTING_COMMAND %pCommand %pByte"
+    //% pByte.min=0 pByte.max=255
+    export function settingCommand_2(pADDR: eADDR, pCommand: eSETTING_COMMAND_2, pByte: number) {
+        /*
+            # To set the contrast we need to send 3 bytes:
+            # (1) SETTINGS_COMMAND
+            # (2) CONTRAST_COMMAND
+            # (3) contrast value
+            #
+            # To do this, we are going to use writeBlock(),
+            # so we need our "block of bytes" to include
+            # CONTRAST_COMMAND and contrast value
+        */
+        let bu = pins.createBuffer(3)
+        bu.setUint8(0, SETTING_COMMAND)
+        bu.setUint8(1, pCommand)
+        bu.setUint8(2, pByte & 0xFF)
+        pins.i2cWriteBuffer(pADDR, bu)
+
+        //Qwiic_I2C_Py.writeByte(pADDR, SETTING_COMMAND, pCommand)
+        sleep(0.01)
+    }
+
+    //% group="SETTING_COMMAND"
+    //% block="i2c %pADDR SETTING_COMMAND r %r g %g b %b"
+    //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
+    //% inlineInputMode=inline
+    export function settingCommand_4(pADDR: eADDR, r: number, g: number, b: number) {
+        /*
+            Set backlight with no LCD messages or delays
+            :param r: red backlight value 0-255
+            :param g: green backlight value 0-255
+            :param b: blue backlight value 0-255
+        */
+        let bu = pins.createBuffer(5)
+        bu.setUint8(0, SETTING_COMMAND)
+        bu.setUint8(1, eSETTING_COMMAND_4.SET_RGB_COMMAND)
+        bu.setUint8(2, r)
+        bu.setUint8(3, g)
+        bu.setUint8(4, b)
+        pins.i2cWriteBuffer(pADDR, bu)
+        // send the complete bytes (address, settings command , rgb command , red byte, green byte, blue byte)
+        // Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
+        sleep(0.01)
+    }
+
+
 
 
     // ========== PRIVATE function
