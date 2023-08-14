@@ -223,15 +223,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
 
-
-
-
-
-
-
-
-
-
     // ========== group="SETTING_COMMAND" advanced=true ========== im Datasheet nicht dokumentiert
 
 
@@ -403,7 +394,5 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         //Qwiic_I2C_Py.writeByte(pADDR, SPECIAL_COMMAND, pCommand)
         sleep(0.05)
     }
-
-
 
 } // lcd-20x4.ts
