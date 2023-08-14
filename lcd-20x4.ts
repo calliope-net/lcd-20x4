@@ -29,7 +29,7 @@ If that pin is held LOW (aka tied to ground), for 2 seconds, then it will reset 
 
 Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßner im August 2023
 */ {
-    export enum eADDR { LCD_Qwiic = 0x72 } // This is the default address of the OpenLCD
+    export enum eADDR { LCD_20x4 = 0x72 } // This is the default address of the OpenLCD
 
     const MAX_ROWS = 4
     const MAX_COLUMNS = 20
