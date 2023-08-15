@@ -1,7 +1,7 @@
 
-//% color=#0000FF icon="\uf26c" block="LCD 20x4" weight=16
+//% color=#BF003F icon="\uf26c" block="LCD 20x4" weight=16
 namespace lcd20x4
-/* 230814 \uf108
+/* 230815 \uf108
 Calliope i2c Erweiterung für 'SparkFun Serial LCDs (QWIIC)'
 optimiert und getestet für die gleichzeitige Nutzung mehrerer i2c Module am Calliope
 [Projekt-URL] https://github.com/calliope-net/lcd-20x4
@@ -103,7 +103,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="LCD Display Qwiic" advanced=true
     //% block="i2c %pADDR display %display cursor %cursor blink %blink" weight=52
-    //% row.min=0 row.max=1 col.min=0 col.max=15 display.defl=lcd20x4.eONOFF.ON
+    //% display.defl=lcd20x4.eONOFF.ON
     //% inlineInputMode=inline
     export function setDisplay(pADDR: eADDR, display: eONOFF, cursor: eONOFF, blink: eONOFF) {
         let command: number = LCD_DISPLAYCONTROL // 0x08
@@ -174,7 +174,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="LCD Display Qwiic"
     //% block="i2c %pADDR setCursor row %pRow col %pCol" weight=82
-    //% row.min=0 row.max=3 col.min=0 col.max=19
+    //% pRow.min=0 pRow.max=3 pCol.min=0 pCol.max=19
     export function setCursor(pADDR: eADDR, pRow: number, pCol: number) {
         let row_offsets = [0x00, 0x40, 0x14, 0x54] // 0, 64, 20, 84
         // kepp variables in bounds
@@ -197,6 +197,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% block="i2c %pADDR writeText %pString" weight=80
     export function writeLCD(pADDR: eADDR, pString: string) {
         //for (let val in pString) {}
+        if (pString.length > 32) {
+            pString = pString.substr(0, 32)
+        }
 
         let bu = pins.createBuffer(pString.length)
         for (let i = 0; i < pString.length; i++) {
