@@ -5,6 +5,8 @@ Diese Seite bei [https://calliope-net.github.io/lcd-20x4/](https://calliope-net.
 
 * [SparkFun 20x4 SerLCD - RGB Backlight (Qwiic)](https://www.sparkfun.com/products/16398)
 
+![](https://cdn.sparkfun.com//assets/parts/1/5/1/2/4/16398-SparkFun_16x2_SerLCD_-_RGB_Backlight__Qwiic_-05.jpg)
+
 Dieses Repository kann als **Erweiterung** in MakeCode hinzugefügt werden.
 
 * öffne [makecode.calliope.cc](https://makecode.calliope.cc)
