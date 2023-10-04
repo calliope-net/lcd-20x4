@@ -31,8 +31,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 */ {
     export enum eADDR { LCD_20x4 = 0x72 } // This is the default address of the OpenLCD
 
-    const MAX_ROWS = 4
-    const MAX_COLUMNS = 20
+    //const MAX_ROWS = 4
+    //const MAX_COLUMNS = 20
 
     // OpenLCD command characters
     const SPECIAL_COMMAND = 254  // Magic number for sending a special command
@@ -56,8 +56,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // const LCD_ENTRYLEFT = 0x02
     // const LCD_ENTRYSHIFTINCREMENT = 0x01
     // const LCD_ENTRYSHIFTDECREMENT = 0x00
-    export enum eLCD_ENTRYMODE { LCD_ENTRYLEFT = 0x02, LCD_ENTRYRIGHT = 0x00 }
-    export enum eLCD_ENTRYSHIFT { LCD_ENTRYSHIFTDECREMENT = 0x00, LCD_ENTRYSHIFTINCREMENT = 0x01 }
 
 
     // flags for display on/off control (8 | 4 | 2 | 1)
@@ -73,8 +71,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // const LCD_CURSORMOVE = 0x00
     // const LCD_MOVERIGHT = 0x04
     // const LCD_MOVELEFT = 0x00
-    export enum eLCD_DISPLAYMOVE { LCD_CURSORMOVE = 0x00, LCD_DISPLAYMOVE = 0x08 }
-    export enum eLCD_MOVERIGHT { LCD_MOVERIGHT = 0x04, LCD_MOVELEFT = 0x00 }
 
 
     // Variablen
@@ -182,11 +178,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.01)
     }
 
+
     // ========== group="Display"
 
     //export enum eONOFF { OFF = 0, ON = 1 }
    
-
     //% group="Display"
     //% block="i2c %pADDR Cursor Zeile %row von %col Cursor %cursor || Blink %blink" weight=4
     //% pADDR.shadow="lcd20x4_eADDR"
@@ -216,11 +212,14 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
 
+    // ========== group="SPECIAL_COMMAND"
 
-    // ========== special commands
+
+    export enum eLCD_ENTRYMODE { LCD_ENTRYLEFT = 0x02, LCD_ENTRYRIGHT = 0x00 }
+    export enum eLCD_ENTRYSHIFT { LCD_ENTRYSHIFTDECREMENT = 0x00, LCD_ENTRYSHIFTINCREMENT = 0x01 }
 
     //% group="SPECIAL_COMMAND" advanced=true
-    //% block="i2c %pADDR %pENTRYMODE %pENTRYSHIFT" weight=30
+    //% block="i2c %pADDR %pENTRYMODE %pENTRYSHIFT" weight=3
     //% pADDR.shadow="lcd20x4_eADDR"
     export function entrymodeset(pADDR: number, pENTRYMODE: eLCD_ENTRYMODE, pENTRYSHIFT: eLCD_ENTRYSHIFT) {
         // LCD_ENTRYLEFT Set the text to flow from left to right. This is the direction that is common to most Western languages.
@@ -229,12 +228,16 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     } // 37 µs bei 270 kHz (gilt für alle außer LCD_RETURNHOME)
 
 
+    export enum eLCD_DISPLAYMOVE { LCD_CURSORMOVE = 0x00, LCD_DISPLAYMOVE = 0x08 }
+    export enum eLCD_MOVERIGHT { LCD_MOVERIGHT = 0x04, LCD_MOVELEFT = 0x00 }
+
     //% group="SPECIAL_COMMAND" advanced=true
-    //% block="i2c %pADDR %pDISPLAYMOVE %pMOVERIGHT count %pCount" weight=32
+    //% block="i2c %pADDR %pDISPLAYMOVE %pMOVERIGHT count %pCount" weight=2
     //% pADDR.shadow="lcd20x4_eADDR"
+    //% pCount.min=0 pCount.max=19
     //% inlineInputMode=inline
     export function cursorshift(pADDR: number, pDISPLAYMOVE: eLCD_DISPLAYMOVE, pMOVERIGHT: eLCD_MOVERIGHT, pCount: number) {
-        let bu = pins.createBuffer(2 * Math.min(Math.max(0, pCount), MAX_COLUMNS - 1)) // pCount 0..15 oder 0..19
+        let bu = Buffer.create(2 * Math.min(Math.max(0, pCount), 19)) // pCount 0..15 oder 0..19
         for (let i = 0; i < bu.length; i += 2) {
             bu.setUint8(i, SPECIAL_COMMAND)
             bu.setUint8(i + 1, LCD_CURSORSHIFT | pDISPLAYMOVE | pMOVERIGHT)
@@ -242,16 +245,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
         sleep(0.05)
     }
-
-
-
-
-    // ========== eigene Funktionen ==========
-
-
-    // ========== advanced=true
-    // ========== group="LCD Display Qwiic"
-
 
 
 
@@ -288,11 +281,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
     //% group="SETTING_COMMAND" advanced=true
-    //% block="i2c %pADDR SETTING_COMMAND %pCommand" weight=24
+    //% block="i2c %pADDR SETTING COMMAND 1 %pCommand" weight=4
     //% pADDR.shadow="lcd20x4_eADDR"
     export function settingCommand_1(pADDR: number, pCommand: eSETTING_COMMAND_1) {
         //command(pADDR, pCommand) // (0) SETTING_COMMAND, (1) pCommand
-        let bu = pins.createBuffer(2)
+        let bu = Buffer.create(2)
         bu.setUint8(0, SETTING_COMMAND)
         bu.setUint8(1, pCommand)
         lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
@@ -302,7 +295,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
     //% group="SETTING_COMMAND" advanced=true
-    //% block="i2c %pADDR SETTING_COMMAND %pCommand %pByte" weight=22
+    //% block="i2c %pADDR SETTING COMMAND 2 %pCommand %pByte" weight=2
     //% pADDR.shadow="lcd20x4_eADDR"
     //% pByte.min=0 pByte.max=255
     export function settingCommand_2(pADDR: number, pCommand: eSETTING_COMMAND_2, pByte: number) {
@@ -316,7 +309,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
             # so we need our "block of bytes" to include
             # CONTRAST_COMMAND and contrast value
         */
-        let bu = pins.createBuffer(3)
+        let bu = Buffer.create(3)
         bu.setUint8(0, SETTING_COMMAND)
         bu.setUint8(1, pCommand)
         bu.setUint8(2, pByte & 0xFF)
@@ -326,43 +319,17 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.05)
     }
 
-    //% group="RGB Backlight"
-    //% block="i2c %pADDR set RGB r %r g %g b %b" weight=70
-    //% pADDR.shadow="lcd20x4_eADDR"
-    //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
-    //% r.defl=255 g.defl=255 b.defl=255
-    //% inlineInputMode=inline
-    function settingCommand_4(pADDR: number, r: number, g: number, b: number) {
-        /*
-            Set backlight with no LCD messages or delays
-            :param r: red backlight value 0-255
-            :param g: green backlight value 0-255
-            :param b: blue backlight value 0-255
-        */
-        let bu = pins.createBuffer(5)
-        bu.setUint8(0, SETTING_COMMAND)
-        bu.setUint8(1, eSETTING_COMMAND_4.SET_RGB_COMMAND)
-        bu.setUint8(2, r)
-        bu.setUint8(3, g)
-        bu.setUint8(4, b)
-        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
-        // send the complete bytes (address, settings command , rgb command , red byte, green byte, blue byte)
-        // Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
-        sleep(0.01)
-    }
-
-
     // ========== group="SETTING_COMMAND" advanced=true ========== im Datasheet nicht dokumentiert
 
 
-    // ========== group="Text" advanced=true
+    // ========== group="Text, Logik" advanced=true
 
     //% blockId=lcd20x4_text
-    //% group="Text" advanced=true
+    //% group="Text, Logik" advanced=true
     //% block="%s" weight=6
     export function lcd20x4_text(s: string): string { return s }
 
-    //% group="Text" advanced=true
+    //% group="Text, Logik" advanced=true
     //% block="Sonderzeichen Code von Char %pChar" weight=4
     export function changeCharCode(pChar: string) {
         if (pChar.length == 0) return 0
@@ -390,6 +357,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         return pChar.charCodeAt(0) & 0xFF // es können nur 1 Byte Zeichen-Codes im Buffer übertragen werden
     }
 
+    //% group="Text, Logik" advanced=true
+    //% block="%i0 zwischen %i1 und %i2" weight=2
+    export function between(i0: number, i1: number, i2: number): boolean {
+        return (i0 >= i1 && i0 <= i2)
+    }
 
 
     // ========== PRIVATE function
@@ -398,7 +370,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     function sleep(pSekunden: number) { control.waitMicros(pSekunden * 1000000) }
 
     function specialCommand(pADDR: number, pCommand: number) {
-        let bu = pins.createBuffer(2)
+        let bu = Buffer.create(2)
         bu.setUint8(0, SPECIAL_COMMAND)
         bu.setUint8(1, pCommand & 0xFF)
         lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
@@ -407,13 +379,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.05)
     }
 
-    // ========== group="Logik"
-
-    //% group="Logik" advanced=true
-    //% block="%i0 zwischen %i1 und %i2"
-    export function between(i0: number, i1: number, i2: number): boolean {
-        return (i0 >= i1 && i0 <= i2)
-    }
 
     // ========== group="i2c Adressen"
 
