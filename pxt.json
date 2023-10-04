@@ -8,7 +8,8 @@
         "main.blocks",
         "main.ts",
         "README.md",
-        "lcd20x4.ts"
+        "lcd20x4.ts",
+        "lcd20x4rgb.ts"
     ],
     "testFiles": [
         "test.ts"
