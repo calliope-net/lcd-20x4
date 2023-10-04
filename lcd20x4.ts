@@ -50,7 +50,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //    LCD_SETCGRAMADDR = 0x40   nicht benutzt
     // set Cursor
     const LCD_SETDDRAMADDR = 0x80   // SPECIAL_COMMAND, LCD_SETDDRAMADDR | (col + row_offsets[row])
-    export enum eLCD_CLEARDISPLAY { LCD_CLEARDISPLAY = 0x01, LCD_RETURNHOME = 0x02 }
 
     // flags for display entry mode // SPECIAL_COMMAND + 1 Byte (4|2|1)
     // const LCD_ENTRYRIGHT = 0x00 // SPECIAL_COMMAND, Flags(LCD_ENTRYMODESET | LCD_ENTRYRIGHT | LCD_ENTRYSHIFTDECREMENT)
@@ -107,25 +106,58 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
+    export enum eLCD_CLEARDISPLAY {
+        //% block="Display löschen"
+        LCD_CLEARDISPLAY = 0x01,
+        //% block="Cursor Home"
+        LCD_RETURNHOME = 0x02
+    }
+
+    //% group="LCD Display Qwiic"
+    //% block="i2c %pADDR %pLCD_CLEARDISPLAY" weight=5
+    //% pADDR.shadow="lcd20x4_eADDR"
+    export function clearScreen(pADDR: number, pLCD_CLEARDISPLAY: eLCD_CLEARDISPLAY) {
+        specialCommand(pADDR, pLCD_CLEARDISPLAY)
+    }
 
 
+    // ========== group="Text anzeigen"
 
+    export enum eAlign {
+        //% block="linksbündig"
+        left,
+        //% block="rechtsbündig"
+        right
+    }
 
+    //% group="Text anzeigen"
+    //% block="i2c %pADDR Text Zeile %row von %col bis %end %pText || %pAlign" weight=7
+    //% pADDR.shadow="lcd20x4_eADDR"
+    //% pText.shadow="lcd20x4_text"
+    //% row.min=0 row.max=3 col.min=0 col.max=19 end.min=0 end.max=19 end.defl=19
+    //% inlineInputMode=inline
+    export function writeText(pADDR: number, row: number, col: number, end: number, pText: any, pAlign?: eAlign) {
+        let text: string = convertToText(pText)
+        let len: number = end - col + 1, t: string
+        //if (col >= 0 && col <= MAX_COLUMNS - 1 && len > 0 && len <= MAX_COLUMNS)
+        if (between(row, 0, 3) && between(col, 0, 19) && between(len, 0, 20)) {
+            setCursor(pADDR, row, col)
 
+            if (text.length >= len) t = text.substr(0, len)
+            else if (text.length < len && pAlign == eAlign.left) { t = text + "                    ".substr(0, len - text.length) }
+            else if (text.length < len && pAlign == eAlign.right) { t = "                    ".substr(0, len - text.length) + text }
+
+            writeLCD(pADDR, t)
+        }
+    }
 
 
     // ========== special commands
 
-    //% group="LCD Display Qwiic" advanced=true
-    //% block="i2c %pADDR %pLCD_CLEARDISPLAY" weight=50
-    export function clearScreen(pADDR: eADDR, pLCD_CLEARDISPLAY: eLCD_CLEARDISPLAY) {
-        specialCommand(pADDR, pLCD_CLEARDISPLAY)
-        // settingCommand_1(pADDR, eSETTING_COMMAND_1.CLEAR_COMMAND)
-    }
-
     //% group="SPECIAL_COMMAND" advanced=true
     //% block="i2c %pADDR %pENTRYMODE %pENTRYSHIFT" weight=30
-    export function entrymodeset(pADDR: eADDR, pENTRYMODE: eLCD_ENTRYMODE, pENTRYSHIFT: eLCD_ENTRYSHIFT) {
+    //% pADDR.shadow="lcd20x4_eADDR"
+    export function entrymodeset(pADDR: number, pENTRYMODE: eLCD_ENTRYMODE, pENTRYSHIFT: eLCD_ENTRYSHIFT) {
         // LCD_ENTRYLEFT Set the text to flow from left to right. This is the direction that is common to most Western languages.
         // LCD_ENTRYSHIFTINCREMENT Turn autoscrolling off.
         specialCommand(pADDR, LCD_ENTRYMODESET | pENTRYMODE | pENTRYSHIFT)
@@ -135,9 +167,10 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="LCD Display Qwiic" advanced=true
     //% block="i2c %pADDR display %display cursor %cursor blink %blink" weight=52
+    //% pADDR.shadow="lcd20x4_eADDR"
     //% display.defl=lcd20x4.eONOFF.ON
     //% inlineInputMode=inline
-    export function setDisplay(pADDR: eADDR, display: eONOFF, cursor: eONOFF, blink: eONOFF) {
+    export function setDisplay(pADDR: number, display: eONOFF, cursor: eONOFF, blink: eONOFF) {
         let command: number = LCD_DISPLAYCONTROL // 0x08
         if (display == eONOFF.ON) { command += 0x04 }
         if (cursor == eONOFF.ON) { command += 0x02 }
@@ -148,8 +181,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="SPECIAL_COMMAND" advanced=true
     //% block="i2c %pADDR %pDISPLAYMOVE %pMOVERIGHT count %pCount" weight=32
+    //% pADDR.shadow="lcd20x4_eADDR"
     //% inlineInputMode=inline
-    export function cursorshift(pADDR: eADDR, pDISPLAYMOVE: eLCD_DISPLAYMOVE, pMOVERIGHT: eLCD_MOVERIGHT, pCount: number) {
+    export function cursorshift(pADDR: number, pDISPLAYMOVE: eLCD_DISPLAYMOVE, pMOVERIGHT: eLCD_MOVERIGHT, pCount: number) {
         let bu = pins.createBuffer(2 * Math.min(Math.max(0, pCount), MAX_COLUMNS - 1)) // pCount 0..15 oder 0..19
         for (let i = 0; i < bu.length; i += 2) {
             bu.setUint8(i, SPECIAL_COMMAND)
@@ -164,30 +198,12 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     // ========== eigene Funktionen ==========
 
-    export enum eAlign { left, right }
-
-    //% group="Text anzeigen"
-    //% block="i2c %pADDR writeText row %row col %col end %end align %pFormat Text %pText" weight=4
-    //% row.min=0 row.max=3 col.min=0 col.max=19 end.min=0 end.max=19 end.defl=19
-    //% inlineInputMode=inline
-    export function writeText(pADDR: eADDR, row: number, col: number, end: number, pAlign: eAlign, pText: string) {
-        let l: number = end - col + 1, t: string
-        if (col >= 0 && col <= MAX_COLUMNS - 1 && l > 0 && l <= MAX_COLUMNS) {
-            setCursor(pADDR, row, col)
-
-            if (pText.length >= l) t = pText.substr(0, l)
-            else if (pText.length < l && pAlign == eAlign.left) { t = pText + "                    ".substr(0, l - pText.length) }
-            else if (pText.length < l && pAlign == eAlign.right) { t = "                    ".substr(0, l - pText.length) + pText }
-
-            writeLCD(pADDR, t)
-        }
-    }
-
 
     //% group="Text anzeigen"
     //% block="i2c %pADDR setCursor row %pRow col %pCol" weight=2
+    //% pADDR.shadow="lcd20x4_eADDR"
     //% pRow.min=0 pRow.max=3 pCol.min=0 pCol.max=19
-    export function setCursor(pADDR: eADDR, pRow: number, pCol: number) {
+    export function setCursor(pADDR: number, pRow: number, pCol: number) {
         let row_offsets = [0x00, 0x40, 0x14, 0x54] // 0, 64, 20, 84
         // kepp variables in bounds
         // pRow = Math.max(0, pRow)            //row cannot be less than 0
@@ -207,7 +223,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="Text anzeigen"
     //% block="i2c %pADDR writeText %pString" weight=1
-    export function writeLCD(pADDR: eADDR, pString: string) {
+    //% pADDR.shadow="lcd20x4_eADDR"
+    export function writeLCD(pADDR: number, pString: string) {
         //for (let val in pString) {}
         if (pString.length > 32) {
             pString = pString.substr(0, 32)
@@ -228,9 +245,10 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="LCD Display Qwiic" advanced=true
     //% block="i2c %pADDR setCursor row %row col %col cursor %cursor blink %blink" weight=54
+    //% pADDR.shadow="lcd20x4_eADDR"
     //% row.min=0 row.max=3 col.min=0 col.max=19 cursor.defl=lcd20x4.eONOFF.ON
     //% inlineInputMode=inline
-    export function setCursorCB(pADDR: eADDR, row: number, col: number, cursor: eONOFF, blink: eONOFF) {
+    export function setCursorCB(pADDR: number, row: number, col: number, cursor: eONOFF, blink: eONOFF) {
         setCursor(pADDR, row, col)
         setDisplay(pADDR, eONOFF.ON, cursor, blink)
     }
@@ -270,7 +288,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="SETTING_COMMAND" advanced=true
     //% block="i2c %pADDR SETTING_COMMAND %pCommand" weight=24
-    export function settingCommand_1(pADDR: eADDR, pCommand: eSETTING_COMMAND_1) {
+    //% pADDR.shadow="lcd20x4_eADDR"
+    export function settingCommand_1(pADDR: number, pCommand: eSETTING_COMMAND_1) {
         //command(pADDR, pCommand) // (0) SETTING_COMMAND, (1) pCommand
         let bu = pins.createBuffer(2)
         bu.setUint8(0, SETTING_COMMAND)
@@ -283,8 +302,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="SETTING_COMMAND" advanced=true
     //% block="i2c %pADDR SETTING_COMMAND %pCommand %pByte" weight=22
+    //% pADDR.shadow="lcd20x4_eADDR"
     //% pByte.min=0 pByte.max=255
-    export function settingCommand_2(pADDR: eADDR, pCommand: eSETTING_COMMAND_2, pByte: number) {
+    export function settingCommand_2(pADDR: number, pCommand: eSETTING_COMMAND_2, pByte: number) {
         /*
             # To set the contrast we need to send 3 bytes:
             # (1) SETTINGS_COMMAND
@@ -307,10 +327,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="RGB Backlight"
     //% block="i2c %pADDR set RGB r %r g %g b %b" weight=70
+    //% pADDR.shadow="lcd20x4_eADDR"
     //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
     //% r.defl=255 g.defl=255 b.defl=255
     //% inlineInputMode=inline
-    export function settingCommand_4(pADDR: eADDR, r: number, g: number, b: number) {
+    export function settingCommand_4(pADDR: number, r: number, g: number, b: number) {
         /*
             Set backlight with no LCD messages or delays
             :param r: red backlight value 0-255
@@ -333,10 +354,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // ========== group="SETTING_COMMAND" advanced=true ========== im Datasheet nicht dokumentiert
 
     //% group="SETTING_COMMAND" advanced=true
-    //% block="i2c %i2cADDR set RGB r %r g %g b %b" weight=20
+    //% block="i2c %pADDR set RGB r %r g %g b %b" weight=20
+    //% pADDR.shadow="lcd20x4_eADDR"
     //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
     //% inlineInputMode=inline
-    export function setBacklight(pADDR: eADDR, r: number, g: number, b: number) {
+    export function setBacklight(pADDR: number, r: number, g: number, b: number) {
         // Turn display off to hide confirmation messages
         // _displayControl &= ~LCD_DISPLAYON
 
@@ -366,7 +388,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // ========== group="Text" advanced=true
 
     //% group="Text" advanced=true
-    //% block="Sonderzeichen Code von Char %pChar" weight=10
+    //% blockId=lcd20x4_text block="%s" weight=6
+    export function lcd20x4_text(s: string): string { return s }
+
+    //% group="Text" advanced=true
+    //% block="Sonderzeichen Code von Char %pChar" weight=4
     export function changeCharCode(pChar: string) {
         if (pChar.length == 0) return 0
         switch (pChar.charCodeAt(0)) {
@@ -400,7 +426,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // aus Python
     function sleep(pSekunden: number) { control.waitMicros(pSekunden * 1000000) }
 
-    function specialCommand(pADDR: eADDR, pCommand: number) {
+    function specialCommand(pADDR: number, pCommand: number) {
         let bu = pins.createBuffer(2)
         bu.setUint8(0, SPECIAL_COMMAND)
         bu.setUint8(1, pCommand & 0xFF)
@@ -410,6 +436,13 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.05)
     }
 
+    // ========== group="Logik"
+
+    //% group="Logik" advanced=true
+    //% block="%i0 zwischen %i1 und %i2"
+    export function between(i0: number, i1: number, i2: number): boolean {
+        return (i0 >= i1 && i0 <= i2)
+    }
 
     // ========== group="i2c Adressen"
 
