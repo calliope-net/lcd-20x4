@@ -151,6 +151,37 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         }
     }
 
+    //% group="Text anzeigen"
+    //% block="i2c %pADDR Cursor Zeile %row von %col" weight=6
+    //% pADDR.shadow="lcd20x4_eADDR"
+    //% row.min=0 row.max=3 col.min=0 col.max=19
+    export function setCursor(pADDR: number, row: number, col: number) {
+        let row_offsets = [0x00, 0x40, 0x14, 0x54] // 0, 64, 20, 84
+        // kepp variables in bounds
+        // pRow = Math.max(0, pRow)            //row cannot be less than 0
+        row = Math.min(Math.max(0, row), 3) //row cannot be greater than max rows
+        col = Math.min(Math.max(0, col), 19)
+        specialCommand(pADDR, LCD_SETDDRAMADDR | (row_offsets[row] + col)) // max. 7 Bit (127)
+    }
+
+    //% group="Text anzeigen"
+    //% block="i2c %pADDR Text %pString" weight=1
+    //% pADDR.shadow="lcd20x4_eADDR"
+    //% pText.shadow="lcd20x4_text"
+    export function writeLCD(pADDR: number, pText: any) {
+        let text: string = convertToText(pText)
+
+        if (text.length > 32) {
+            text = text.substr(0, 32)
+        }
+        let bu = Buffer.create(text.length)
+        for (let i = 0; i < text.length; i++) {
+            bu.setUint8(i, changeCharCode(text.charAt(i)))
+        }
+        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        sleep(0.01)
+    }
+
 
     // ========== special commands
 
@@ -198,45 +229,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     // ========== eigene Funktionen ==========
 
-
-    //% group="Text anzeigen"
-    //% block="i2c %pADDR setCursor row %pRow col %pCol" weight=2
-    //% pADDR.shadow="lcd20x4_eADDR"
-    //% pRow.min=0 pRow.max=3 pCol.min=0 pCol.max=19
-    export function setCursor(pADDR: number, pRow: number, pCol: number) {
-        let row_offsets = [0x00, 0x40, 0x14, 0x54] // 0, 64, 20, 84
-        // kepp variables in bounds
-        // pRow = Math.max(0, pRow)            //row cannot be less than 0
-        pRow = Math.min(Math.max(0, pRow), MAX_ROWS - 1) //row cannot be greater than max rows
-        pCol = Math.min(Math.max(0, pCol), MAX_COLUMNS - 1)
-        specialCommand(pADDR, LCD_SETDDRAMADDR | (row_offsets[pRow] + pCol)) // max. 7 Bit (127)
-        /* specialCommand(pADDR, LCD_SETDDRAMADDR |
-            (
-                Math.min(Math.max(0, pCol), MAX_COLUMNS - 1) // pCol 0..15 oder 0..19
-                + row_offsets[pRow & (MAX_ROWS - 1)]) // pRow & 0x03 oder 0x01 -> [index] 0,1 oder 0,1,2,3
-        ) */
-
-        // construct the cursor "command"
-        //let command = LCD_SETDDRAMADDR | (pCol + row_offsets[pRow & (MAX_ROWS - 1)])
-        //Qwiic_I2C_Py.writeByte(pADDR, SPECIAL_COMMAND, command)
-    }
-
-    //% group="Text anzeigen"
-    //% block="i2c %pADDR writeText %pString" weight=1
-    //% pADDR.shadow="lcd20x4_eADDR"
-    export function writeLCD(pADDR: number, pString: string) {
-        //for (let val in pString) {}
-        if (pString.length > 32) {
-            pString = pString.substr(0, 32)
-        }
-
-        let bu = pins.createBuffer(pString.length)
-        for (let i = 0; i < pString.length; i++) {
-            bu.setUint8(i, changeCharCode(pString.charAt(i)))
-        }
-        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
-        sleep(0.01)
-    }
 
     // ========== advanced=true
     // ========== group="LCD Display Qwiic"
@@ -387,8 +379,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     // ========== group="Text" advanced=true
 
+    //% blockId=lcd20x4_text
     //% group="Text" advanced=true
-    //% blockId=lcd20x4_text block="%s" weight=6
+    //% block="%s" weight=6
     export function lcd20x4_text(s: string): string { return s }
 
     //% group="Text" advanced=true
