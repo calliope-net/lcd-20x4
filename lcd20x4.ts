@@ -131,6 +131,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% pADDR.shadow="lcd20x4_eADDR"
     //% pText.shadow="lcd20x4_text"
     //% row.min=0 row.max=3 col.min=0 col.max=19 end.min=0 end.max=19 end.defl=19
+    //% pAlign.defl=0
     //% inlineInputMode=inline
     export function writeText(pADDR: number, row: number, col: number, end: number, pText: any, pAlign?: eAlign) {
         let text: string = convertToText(pText)
