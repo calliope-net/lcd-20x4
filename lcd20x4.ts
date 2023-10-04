@@ -92,7 +92,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% pSettings.shadow="toggleOnOff" pSettings.defl=false
     export function initLCD(pADDR: number, pSettings?: boolean) {
         // LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF // 0x0C
-        setDisplay(pADDR, eONOFF.ON, eONOFF.OFF, eONOFF.OFF)
+        setDisplay(pADDR, true, false, false)
         // LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT // 0x06
         entrymodeset(pADDR, eLCD_ENTRYMODE.LCD_ENTRYLEFT, eLCD_ENTRYSHIFT.LCD_ENTRYSHIFTDECREMENT)
         if (pSettings) {
@@ -165,7 +165,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
     //% group="Text anzeigen"
-    //% block="i2c %pADDR Text %pString" weight=1
+    //% block="i2c %pADDR Text %pText" weight=1
     //% pADDR.shadow="lcd20x4_eADDR"
     //% pText.shadow="lcd20x4_text"
     export function writeLCD(pADDR: number, pText: any) {
@@ -182,6 +182,40 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         sleep(0.01)
     }
 
+    // ========== group="Display"
+
+    //export enum eONOFF { OFF = 0, ON = 1 }
+   
+
+    //% group="Display"
+    //% block="i2c %pADDR Cursor Zeile %row von %col Cursor %cursor || Blink %blink" weight=4
+    //% pADDR.shadow="lcd20x4_eADDR"
+    //% row.min=0 row.max=3 col.min=0 col.max=19 cursor.defl=true blink.defl=false
+    //% cursor.shadow="toggleOnOff" blink.shadow="toggleOnOff"
+    //% inlineInputMode=inline
+    export function setCursorCB(pADDR: number, row: number, col: number, cursor: boolean, blink?: boolean) {
+        setCursor(pADDR, row, col)
+        setDisplay(pADDR, true, cursor, blink)
+    }
+
+    //% group="Display"
+    //% block="i2c %pADDR Display %display Cursor %cursor || Blink %blink" weight=2
+    //% pADDR.shadow="lcd20x4_eADDR"
+    //% display.defl=true blink.defl=false
+    //% display.shadow="toggleOnOff" cursor.shadow="toggleOnOff" blink.shadow="toggleOnOff"
+    //% inlineInputMode=inline
+    export function setDisplay(pADDR: number, display: boolean, cursor: boolean, blink?: boolean) {
+        let command: number = LCD_DISPLAYCONTROL // 0x08
+        if (display) { command += 0x04 }
+        if (cursor) { command += 0x02 }
+        if (blink) { command += 0x01 }
+
+        specialCommand(pADDR, command)
+    }
+
+
+
+
 
     // ========== special commands
 
@@ -194,21 +228,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         specialCommand(pADDR, LCD_ENTRYMODESET | pENTRYMODE | pENTRYSHIFT)
     } // 37 µs bei 270 kHz (gilt für alle außer LCD_RETURNHOME)
 
-    export enum eONOFF { OFF = 0, ON = 1 }
-
-    //% group="LCD Display Qwiic" advanced=true
-    //% block="i2c %pADDR display %display cursor %cursor blink %blink" weight=52
-    //% pADDR.shadow="lcd20x4_eADDR"
-    //% display.defl=lcd20x4.eONOFF.ON
-    //% inlineInputMode=inline
-    export function setDisplay(pADDR: number, display: eONOFF, cursor: eONOFF, blink: eONOFF) {
-        let command: number = LCD_DISPLAYCONTROL // 0x08
-        if (display == eONOFF.ON) { command += 0x04 }
-        if (cursor == eONOFF.ON) { command += 0x02 }
-        if (blink == eONOFF.ON) { command += 0x01 }
-
-        specialCommand(pADDR, command)
-    }
 
     //% group="SPECIAL_COMMAND" advanced=true
     //% block="i2c %pADDR %pDISPLAYMOVE %pMOVERIGHT count %pCount" weight=32
@@ -234,16 +253,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // ========== group="LCD Display Qwiic"
 
 
-
-    //% group="LCD Display Qwiic" advanced=true
-    //% block="i2c %pADDR setCursor row %row col %col cursor %cursor blink %blink" weight=54
-    //% pADDR.shadow="lcd20x4_eADDR"
-    //% row.min=0 row.max=3 col.min=0 col.max=19 cursor.defl=lcd20x4.eONOFF.ON
-    //% inlineInputMode=inline
-    export function setCursorCB(pADDR: number, row: number, col: number, cursor: eONOFF, blink: eONOFF) {
-        setCursor(pADDR, row, col)
-        setDisplay(pADDR, eONOFF.ON, cursor, blink)
-    }
 
 
 
@@ -323,7 +332,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
     //% r.defl=255 g.defl=255 b.defl=255
     //% inlineInputMode=inline
-    export function settingCommand_4(pADDR: number, r: number, g: number, b: number) {
+    function settingCommand_4(pADDR: number, r: number, g: number, b: number) {
         /*
             Set backlight with no LCD messages or delays
             :param r: red backlight value 0-255
@@ -344,7 +353,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
     // ========== group="SETTING_COMMAND" advanced=true ========== im Datasheet nicht dokumentiert
-  
+
 
     // ========== group="Text" advanced=true
 
