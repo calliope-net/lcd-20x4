@@ -89,8 +89,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="LCD Display Qwiic"
     //% block="i2c %pADDR beim Start || Reset RGB und CONTRAST %pSettings" weight=6
+    //% pADDR.shadow="lcd20x4_eADDR"
     //% pSettings.shadow="toggleOnOff" pSettings.defl=false
-    export function initLCD(pADDR: eADDR, pSettings?: boolean) {
+    export function initLCD(pADDR: number, pSettings?: boolean) {
         // LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF // 0x0C
         setDisplay(pADDR, eONOFF.ON, eONOFF.OFF, eONOFF.OFF)
         // LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT // 0x06
@@ -154,7 +155,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
             bu.setUint8(i, SPECIAL_COMMAND)
             bu.setUint8(i + 1, LCD_CURSORSHIFT | pDISPLAYMOVE | pMOVERIGHT)
         }
-        pins.i2cWriteBuffer(pADDR, bu)
+        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
         sleep(0.05)
     }
 
@@ -216,7 +217,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         for (let i = 0; i < pString.length; i++) {
             bu.setUint8(i, changeCharCode(pString.charAt(i)))
         }
-        pins.i2cWriteBuffer(pADDR, bu)
+        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
         sleep(0.01)
     }
 
@@ -274,7 +275,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         let bu = pins.createBuffer(2)
         bu.setUint8(0, SETTING_COMMAND)
         bu.setUint8(1, pCommand)
-        pins.i2cWriteBuffer(pADDR, bu)
+        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
 
         //Qwiic_I2C_Py.writeByte(pADDR, SETTING_COMMAND, pCommand)
         sleep(0.01)
@@ -298,7 +299,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         bu.setUint8(0, SETTING_COMMAND)
         bu.setUint8(1, pCommand)
         bu.setUint8(2, pByte & 0xFF)
-        pins.i2cWriteBuffer(pADDR, bu)
+        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
 
         //Qwiic_I2C_Py.writeByte(pADDR, SETTING_COMMAND, pCommand)
         sleep(0.05)
@@ -322,7 +323,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         bu.setUint8(2, r)
         bu.setUint8(3, g)
         bu.setUint8(4, b)
-        pins.i2cWriteBuffer(pADDR, bu)
+        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
         // send the complete bytes (address, settings command , rgb command , red byte, green byte, blue byte)
         // Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
         sleep(0.01)
@@ -357,7 +358,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
         // send the complete bytes (address, settings command , contrast command, contrast value)
         //Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
-        pins.i2cWriteBuffer(pADDR, bu)
+        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
         sleep(0.05)
     }
 
@@ -403,11 +404,25 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         let bu = pins.createBuffer(2)
         bu.setUint8(0, SPECIAL_COMMAND)
         bu.setUint8(1, pCommand & 0xFF)
-        pins.i2cWriteBuffer(pADDR, bu)
+        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
 
         //Qwiic_I2C_Py.writeByte(pADDR, SPECIAL_COMMAND, pCommand)
         sleep(0.05)
     }
+
+
+    // ========== group="i2c Adressen"
+
+    //% blockId=lcd20x4_eADDR
+    //% group="i2c Adressen" advanced=true
+    //% block="%pADDR" weight=4
+    export function lcd20x4_eADDR(pADDR: eADDR): number { return pADDR }
+
+    //% group="i2c Adressen" advanced=true
+    //% block="Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)" weight=2
+    export function i2cError() { return lcd20x4_i2cWriteBufferError }
+    let lcd20x4_i2cWriteBufferError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
+
 
 } // lcd20x4.ts
 
