@@ -82,6 +82,37 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // let _displayControl = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF
     // let _displayMode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT
 
+
+    // ========== group="LCD Display Qwiic"
+
+    //export enum eINIT { _ = 0, RGB_CONTRAST = 1 }
+
+    //% group="LCD Display Qwiic"
+    //% block="i2c %pADDR beim Start || Reset RGB und CONTRAST %pSettings" weight=6
+    //% pSettings.shadow="toggleOnOff" pSettings.defl=false
+    export function initLCD(pADDR: eADDR, pSettings?: boolean) {
+        // LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF // 0x0C
+        setDisplay(pADDR, eONOFF.ON, eONOFF.OFF, eONOFF.OFF)
+        // LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT // 0x06
+        entrymodeset(pADDR, eLCD_ENTRYMODE.LCD_ENTRYLEFT, eLCD_ENTRYSHIFT.LCD_ENTRYSHIFTDECREMENT)
+        if (pSettings) {
+            // RGB white
+            setBacklight(pADDR, 255, 255, 255)
+            // CONTRAST_COMMAND
+            settingCommand_2(pADDR, eSETTING_COMMAND_2.CONTRAST_COMMAND, 0)
+        }
+        // LCD_CLEARDISPLAY
+        clearScreen(pADDR, eLCD_CLEARDISPLAY.LCD_CLEARDISPLAY)
+    }
+
+
+
+
+
+
+
+
+
     // ========== special commands
 
     //% group="LCD Display Qwiic" advanced=true
@@ -131,31 +162,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
     // ========== eigene Funktionen ==========
-    // ========== group="LCD Display Qwiic"
-
-    export enum eINIT { _ = 0, RGB_CONTRAST = 1 }
-
-    //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR init LCD %pSettings" weight=86
-    export function initLCD(pADDR: eADDR, pSettings: eINIT) {
-        // LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF // 0x0C
-        setDisplay(pADDR, eONOFF.ON, eONOFF.OFF, eONOFF.OFF)
-        // LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT // 0x06
-        entrymodeset(pADDR, eLCD_ENTRYMODE.LCD_ENTRYLEFT, eLCD_ENTRYSHIFT.LCD_ENTRYSHIFTDECREMENT)
-        if (pSettings == eINIT.RGB_CONTRAST) {
-            // RGB white
-            setBacklight(pADDR, 255, 255, 255)
-            // CONTRAST_COMMAND
-            settingCommand_2(pADDR, eSETTING_COMMAND_2.CONTRAST_COMMAND, 0)
-        }
-        // LCD_CLEARDISPLAY
-        clearScreen(pADDR, eLCD_CLEARDISPLAY.LCD_CLEARDISPLAY)
-    }
 
     export enum eAlign { left, right }
 
-    //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR writeText row %row col %col end %end align %pFormat Text %pText" weight=84
+    //% group="Text anzeigen"
+    //% block="i2c %pADDR writeText row %row col %col end %end align %pFormat Text %pText" weight=4
     //% row.min=0 row.max=3 col.min=0 col.max=19 end.min=0 end.max=19 end.defl=19
     //% inlineInputMode=inline
     export function writeText(pADDR: eADDR, row: number, col: number, end: number, pAlign: eAlign, pText: string) {
@@ -172,8 +183,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
-    //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR setCursor row %pRow col %pCol" weight=82
+    //% group="Text anzeigen"
+    //% block="i2c %pADDR setCursor row %pRow col %pCol" weight=2
     //% pRow.min=0 pRow.max=3 pCol.min=0 pCol.max=19
     export function setCursor(pADDR: eADDR, pRow: number, pCol: number) {
         let row_offsets = [0x00, 0x40, 0x14, 0x54] // 0, 64, 20, 84
@@ -193,8 +204,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         //Qwiic_I2C_Py.writeByte(pADDR, SPECIAL_COMMAND, command)
     }
 
-    //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR writeText %pString" weight=80
+    //% group="Text anzeigen"
+    //% block="i2c %pADDR writeText %pString" weight=1
     export function writeLCD(pADDR: eADDR, pString: string) {
         //for (let val in pString) {}
         if (pString.length > 32) {
