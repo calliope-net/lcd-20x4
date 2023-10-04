@@ -39,7 +39,7 @@ namespace lcd20x4
 
     //% group="Backlight" subcategory="RGB Backlight"
     //% block="i2c %pADDR set RGB %color" weight=1
-    //% pADDR.shadow="lcd16x2rgb_eADDR"
+    //% pADDR.shadow="lcd20x4_eADDR"
     //% color.shadow="colorNumberPicker"
     export function setRGB1(pADDR: number, color: number) {
         setBacklight(pADDR, color >>> 16 & 0xFF, color >>> 8 & 0xFF, color & 0xFF)

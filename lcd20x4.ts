@@ -344,38 +344,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
 
     // ========== group="SETTING_COMMAND" advanced=true ========== im Datasheet nicht dokumentiert
-    /* 
-        //% group="SETTING_COMMAND" advanced=true
-        //% block="i2c %pADDR set RGB r %r g %g b %b" weight=20
-        //% pADDR.shadow="lcd20x4_eADDR"
-        //% r.min=0 r.max=255 g.min=0 g.max=255 b.min=0 b.max=255
-        //% inlineInputMode=inline
-        export function setBacklight(pADDR: number, r: number, g: number, b: number) {
-            // Turn display off to hide confirmation messages
-            // _displayControl &= ~LCD_DISPLAYON
-    
-            let bu = pins.createBuffer(6)
-            let off = 0
-            // bu.setUint8(off++, SPECIAL_COMMAND)
-            // bu.setUint8(off++, LCD_DISPLAYCONTROL | _displayControl)
-            bu.setUint8(off++, SETTING_COMMAND)
-            bu.setUint8(off++, 128 + Math.trunc(Math.map(r, 0, 255, 0, 29)))
-            bu.setUint8(off++, SETTING_COMMAND)
-            bu.setUint8(off++, 158 + Math.trunc(Math.map(g, 0, 255, 0, 29)))
-            bu.setUint8(off++, SETTING_COMMAND)
-            bu.setUint8(off++, 188 + Math.trunc(Math.map(b, 0, 255, 0, 29)))
-    
-            // Turn display back on and end
-            // _displayControl |= LCD_DISPLAYON
-            // bu.setUint8(off++, SPECIAL_COMMAND)
-            // bu.setUint8(off++, LCD_DISPLAYCONTROL | _displayControl)
-    
-            // send the complete bytes (address, settings command , contrast command, contrast value)
-            //Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
-            lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
-            sleep(0.05)
-        }
-     */
+  
 
     // ========== group="Text" advanced=true
 
