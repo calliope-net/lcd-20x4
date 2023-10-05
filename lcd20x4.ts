@@ -129,22 +129,30 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% group="Text anzeigen"
     //% block="i2c %pADDR Text Zeile %row von %col bis %end %pText || %pAlign" weight=7
     //% pADDR.shadow="lcd20x4_eADDR"
-    //% pText.shadow="lcd20x4_text"
     //% row.min=0 row.max=3 col.min=0 col.max=19 end.min=0 end.max=19 end.defl=19
+    //% pText.shadow="lcd20x4_text"
     //% pAlign.defl=0
     //% inlineInputMode=inline
     export function writeText(pADDR: number, row: number, col: number, end: number, pText: any, pAlign?: eAlign) {
         let text: string = convertToText(pText)
-        let len: number = end - col + 1, t: string
+        let len: number = end - col + 1
         //if (col >= 0 && col <= MAX_COLUMNS - 1 && len > 0 && len <= MAX_COLUMNS)
         if (between(row, 0, 3) && between(col, 0, 19) && between(len, 0, 20)) {
             setCursor(pADDR, row, col)
 
+            if (text.length > len)
+                text = text.substr(0, len)
+            else if (text.length < len && pAlign == eAlign.right)
+                text = "                    ".substr(0, len - text.length) + text
+            else if (text.length < len)
+                text = text + "                    ".substr(0, len - text.length)
+            // else { } // Original Text text.length == len
+/* 
             if (text.length >= len) t = text.substr(0, len)
             else if (text.length < len && pAlign == eAlign.left) { t = text + "                    ".substr(0, len - text.length) }
             else if (text.length < len && pAlign == eAlign.right) { t = "                    ".substr(0, len - text.length) + text }
-
-            writeLCD(pADDR, t)
+ */
+            writeLCD(pADDR, text)
         }
     }
 
@@ -153,12 +161,17 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% pADDR.shadow="lcd20x4_eADDR"
     //% row.min=0 row.max=3 col.min=0 col.max=19
     export function setCursor(pADDR: number, row: number, col: number) {
+/*         
         let row_offsets = [0x00, 0x40, 0x14, 0x54] // 0, 64, 20, 84
-        // kepp variables in bounds
+        // keep variables in bounds
         // pRow = Math.max(0, pRow)            //row cannot be less than 0
         row = Math.min(Math.max(0, row), 3) //row cannot be greater than max rows
         col = Math.min(Math.max(0, col), 19)
         specialCommand(pADDR, LCD_SETDDRAMADDR | (row_offsets[row] + col)) // max. 7 Bit (127)
+ */
+        if (between(row, 0, 3) && between(col, 0, 19)) {
+            specialCommand(pADDR, LCD_SETDDRAMADDR | ([0x00, 0x40, 0x14, 0x54].get(row) + col)) // max. 7 Bit (127)
+        }
     }
 
     //% group="Text anzeigen"
