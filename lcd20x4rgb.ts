@@ -24,7 +24,7 @@ namespace lcd20x4
         bu.setUint8(2, r)
         bu.setUint8(3, g)
         bu.setUint8(4, b)
-        pins.i2cWriteBuffer(pADDR, bu)
+        i2cWriteBuffer(pADDR, bu)
         // send the complete bytes (address, settings command , rgb command , red byte, green byte, blue byte)
         // Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
         control.waitMicros(50000) // 0.05 Sekunden
@@ -71,7 +71,7 @@ namespace lcd20x4
 
         // send the complete bytes (address, settings command , contrast command, contrast value)
         //Qwiic_I2C_Py.writeBlock(pADDR, SETTING_COMMAND, bu)
-        pins.i2cWriteBuffer(pADDR, bu)
+        i2cWriteBuffer(pADDR, bu)
         control.waitMicros(50000) // 0.05 Sekunden
         //sleep(0.05)
     }

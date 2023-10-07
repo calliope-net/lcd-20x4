@@ -1,7 +1,7 @@
 
 //% color=#BF003F icon="\uf26c" block="LCD 20x4" weight=16
 namespace lcd20x4
-/* 230815 \uf108
+/* 230815 231007 https://github.com/calliope-net/lcd-20x4
 Calliope i2c Erweiterung für 'SparkFun Serial LCDs (QWIIC)'
 optimiert und getestet für die gleichzeitige Nutzung mehrerer i2c Module am Calliope
 [Projekt-URL] https://github.com/calliope-net/lcd-20x4
@@ -30,6 +30,8 @@ If that pin is held LOW (aka tied to ground), for 2 seconds, then it will reset 
 Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßner im August 2023
 */ {
     export enum eADDR { LCD_20x4 = 0x72 } // This is the default address of the OpenLCD
+    let n_i2cCheck: boolean = false // i2c-Check
+    let n_i2cError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
     //const MAX_ROWS = 4
     //const MAX_COLUMNS = 20
@@ -80,13 +82,15 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     // ========== group="LCD Display Qwiic"
 
-    //export enum eINIT { _ = 0, RGB_CONTRAST = 1 }
-
     //% group="LCD Display Qwiic"
-    //% block="i2c %pADDR beim Start || Reset RGB und CONTRAST %pSettings" weight=6
+    //% block="i2c %pADDR beim Start || Reset RGB und CONTRAST %pSettings i2c-Check %ck" weight=6
     //% pADDR.shadow="lcd20x4_eADDR"
-    //% pSettings.shadow="toggleOnOff" pSettings.defl=false
-    export function initLCD(pADDR: number, pSettings?: boolean) {
+    //% pSettings.shadow="toggleOnOff" pSettings.defl=0
+    //% ck.shadow="toggleOnOff" ck.defl=1
+    export function initLCD(pADDR: number, pSettings?: boolean, ck?: boolean) {
+        n_i2cCheck = (ck ? true : false) // optionaler boolean Parameter kann undefined sein
+        n_i2cError = 0 // Reset Fehlercode
+
         // LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF // 0x0C
         setDisplay(pADDR, true, false, false)
         // LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT // 0x06
@@ -147,11 +151,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
             else if (text.length < len)
                 text = text + "                    ".substr(0, len - text.length)
             // else { } // Original Text text.length == len
-/* 
-            if (text.length >= len) t = text.substr(0, len)
-            else if (text.length < len && pAlign == eAlign.left) { t = text + "                    ".substr(0, len - text.length) }
-            else if (text.length < len && pAlign == eAlign.right) { t = "                    ".substr(0, len - text.length) + text }
- */
+            /* 
+                        if (text.length >= len) t = text.substr(0, len)
+                        else if (text.length < len && pAlign == eAlign.left) { t = text + "                    ".substr(0, len - text.length) }
+                        else if (text.length < len && pAlign == eAlign.right) { t = "                    ".substr(0, len - text.length) + text }
+             */
             writeLCD(pADDR, text)
         }
     }
@@ -161,14 +165,14 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% pADDR.shadow="lcd20x4_eADDR"
     //% row.min=0 row.max=3 col.min=0 col.max=19
     export function setCursor(pADDR: number, row: number, col: number) {
-/*         
-        let row_offsets = [0x00, 0x40, 0x14, 0x54] // 0, 64, 20, 84
-        // keep variables in bounds
-        // pRow = Math.max(0, pRow)            //row cannot be less than 0
-        row = Math.min(Math.max(0, row), 3) //row cannot be greater than max rows
-        col = Math.min(Math.max(0, col), 19)
-        specialCommand(pADDR, LCD_SETDDRAMADDR | (row_offsets[row] + col)) // max. 7 Bit (127)
- */
+        /*         
+                let row_offsets = [0x00, 0x40, 0x14, 0x54] // 0, 64, 20, 84
+                // keep variables in bounds
+                // pRow = Math.max(0, pRow)            //row cannot be less than 0
+                row = Math.min(Math.max(0, row), 3) //row cannot be greater than max rows
+                col = Math.min(Math.max(0, col), 19)
+                specialCommand(pADDR, LCD_SETDDRAMADDR | (row_offsets[row] + col)) // max. 7 Bit (127)
+         */
         if (between(row, 0, 3) && between(col, 0, 19)) {
             specialCommand(pADDR, LCD_SETDDRAMADDR | ([0x00, 0x40, 0x14, 0x54].get(row) + col)) // max. 7 Bit (127)
         }
@@ -188,7 +192,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         for (let i = 0; i < text.length; i++) {
             bu.setUint8(i, changeCharCode(text.charAt(i)))
         }
-        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        i2cWriteBuffer(pADDR, bu)
         sleep(0.01)
     }
 
@@ -196,7 +200,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // ========== group="Display"
 
     //export enum eONOFF { OFF = 0, ON = 1 }
-   
+
     //% group="Display"
     //% block="i2c %pADDR Cursor Zeile %row von %col Cursor %cursor || Blink %blink" weight=4
     //% pADDR.shadow="lcd20x4_eADDR"
@@ -256,7 +260,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
             bu.setUint8(i, SPECIAL_COMMAND)
             bu.setUint8(i + 1, LCD_CURSORSHIFT | pDISPLAYMOVE | pMOVERIGHT)
         }
-        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        i2cWriteBuffer(pADDR, bu)
         sleep(0.05)
     }
 
@@ -302,7 +306,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         let bu = Buffer.create(2)
         bu.setUint8(0, SETTING_COMMAND)
         bu.setUint8(1, pCommand)
-        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        i2cWriteBuffer(pADDR, bu)
 
         //Qwiic_I2C_Py.writeByte(pADDR, SETTING_COMMAND, pCommand)
         sleep(0.01)
@@ -327,7 +331,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         bu.setUint8(0, SETTING_COMMAND)
         bu.setUint8(1, pCommand)
         bu.setUint8(2, pByte & 0xFF)
-        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        i2cWriteBuffer(pADDR, bu)
 
         //Qwiic_I2C_Py.writeByte(pADDR, SETTING_COMMAND, pCommand)
         sleep(0.05)
@@ -387,7 +391,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         let bu = Buffer.create(2)
         bu.setUint8(0, SPECIAL_COMMAND)
         bu.setUint8(1, pCommand & 0xFF)
-        lcd20x4_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        i2cWriteBuffer(pADDR, bu)
 
         //Qwiic_I2C_Py.writeByte(pADDR, SPECIAL_COMMAND, pCommand)
         sleep(0.05)
@@ -402,10 +406,25 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     export function lcd20x4_eADDR(pADDR: eADDR): number { return pADDR }
 
     //% group="i2c Adressen" advanced=true
-    //% block="Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)" weight=2
-    export function i2cError() { return lcd20x4_i2cWriteBufferError }
-    let lcd20x4_i2cWriteBufferError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
+    //% block="i2c Fehlercode" weight=2
+    export function i2cError() { return n_i2cError }
 
+    export function i2cWriteBuffer(pADDR: number, buf: Buffer, repeat: boolean = false) { // export für lcd20x4rgb.ts
+        if (n_i2cError == 0) { // vorher kein Fehler
+            n_i2cError = pins.i2cWriteBuffer(pADDR, buf, repeat)
+            if (n_i2cCheck && n_i2cError != 0)  // vorher kein Fehler, wenn (n_i2cCheck=true): beim 1. Fehler anzeigen
+                basic.showString(Buffer.fromArray([pADDR]).toHex()) // zeige fehlerhafte i2c-Adresse als HEX
+        } else if (!n_i2cCheck)  // vorher Fehler, aber ignorieren (n_i2cCheck=false): i2c weiter versuchen
+            n_i2cError = pins.i2cWriteBuffer(pADDR, buf, repeat)
+        //else { } // n_i2cCheck=true und n_i2cError != 0: weitere i2c Aufrufe blockieren
+    }
+
+    /*  wird beim LCD-Display nicht gebraucht
+    function i2cReadBuffer(pADDR: number, size: number, repeat: boolean = false): Buffer {
+        if (!n_i2cCheck || n_i2cError == 0)
+            return pins.i2cReadBuffer(pADDR, size, repeat)
+        else
+            return Buffer.create(size)
+    } */
 
 } // lcd20x4.ts
-
