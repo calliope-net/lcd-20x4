@@ -156,7 +156,13 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
                         else if (text.length < len && pAlign == eAlign.left) { t = text + "                    ".substr(0, len - text.length) }
                         else if (text.length < len && pAlign == eAlign.right) { t = "                    ".substr(0, len - text.length) + text }
              */
-            writeLCD(pADDR, text)
+            // writeLCD(pADDR, text)
+            let bu = Buffer.create(text.length)
+            for (let i = 0; i < text.length; i++) {
+                bu.setUint8(i, changeCharCode(text.charAt(i)))
+            }
+            i2cWriteBuffer(pADDR, bu)
+            sleep(0.01)
         }
     }
 
@@ -185,15 +191,20 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     export function writeLCD(pADDR: number, pText: any) {
         let text: string = convertToText(pText)
 
-        if (text.length > 32) {
+        /* if (text.length > 32) {
             text = text.substr(0, 32)
-        }
+        } */
         let bu = Buffer.create(text.length)
         for (let i = 0; i < text.length; i++) {
             bu.setUint8(i, changeCharCode(text.charAt(i)))
         }
-        i2cWriteBuffer(pADDR, bu)
-        sleep(0.01)
+        // 22.09.2025 LCD Display erlaubt nur max 32 Byte pro Buffer; für 80 Zeichen teilen in 3 Buffer 3*27 = 81
+        // Zeichen werden auf nächster Zeile weiter geschrieben, nach Ende des Displays Fortsetzung auf erster Zeile
+        let bu_list = bu.chunked(27) // Splits buffer into parts no longer than 27
+        for (let i = 0; i < bu_list.length; i++) {
+            i2cWriteBuffer(pADDR, bu_list[i])
+            sleep(0.01)
+        }
     }
 
 
